@@ -3,8 +3,36 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import ollama from "ollama";
 import readline from "node:readline";
 import dotenv from "dotenv";
-
+import fs from "fs";
 dotenv.config();
+
+
+function dynamicChunk(text, maxChars, overlap) {
+  text = text.replace(/\s+/g, " ").trim();
+
+  // Split by sentence boundaries
+  const sentences = text.split(/(?<=[.!?])\s+/);
+
+  const chunks = [];
+  let buffer = "";
+
+  for (const s of sentences) {
+    if ((buffer + s).length <= maxChars) {
+      buffer += " " + s;
+    } else {
+      chunks.push(buffer.trim());
+      buffer = buffer.slice(-overlap) + " " + s;
+    }
+  }
+
+  if (buffer.trim()) chunks.push(buffer.trim());
+
+  return chunks;
+}
+
+
+
+
 
 // Initialize a Pinecone client with your API key
 const pc = new Pinecone({
@@ -12,7 +40,7 @@ const pc = new Pinecone({
 });
 
 // Create a dense index with integrated embedding
-const indexName = "quickstart-js";
+const indexName = "facts-index";
 
 const existingIndexes = await pc.listIndexes();
 
@@ -35,10 +63,30 @@ if (!existingIndexes.indexes.some((i) => i.name === indexName)) {
 // Sample records to upsert
 
 // Target the index
-const index = pc.index(indexName).namespace("example-namespace");
+const index = pc.index(indexName).namespace("facts-namespace");
 
-// // Upsert the records into a namespace
-// await index.upsertRecords(records);
+// Read from text file
+const data = fs.readFileSync("sample_data.txt", "utf-8");
+
+// Split into dynamic chunks
+const chunks = dynamicChunk(data, 80, 20);
+
+// Prepare records for upsert
+const records = chunks
+  .map(c => c.trim())
+  .filter(c => c.length > 0)
+  .map((chunk, idx) => ({
+    _id: `fact-${idx}`,
+    chunk_text: chunk
+  }));
+
+
+
+
+
+
+// Upsert the records into a namespace
+await index.upsertRecords(records);
 
 // // Wait for the upserted vectors to be indexed
 // await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -91,7 +139,7 @@ async function chatLoop() {
 
               const prompt = `
         Use the following context to answer the question.
-        If the answer is not in the context, say "I don't know".
+        If the answer is not in the context then try to give a relevant answer based on your knowledge, if you do not have any answer then say that "Its out of my knowledge base".
 
         ${fullContext}
 
