@@ -30,10 +30,6 @@ function dynamicChunk(text, maxChars, overlap) {
   return chunks;
 }
 
-
-
-
-
 // Initialize a Pinecone client with your API key
 const pc = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY,
@@ -81,15 +77,9 @@ const records = chunks
   }));
 
 
-
-
-
-
 // Upsert the records into a namespace
 await index.upsertRecords(records);
 
-// // Wait for the upserted vectors to be indexed
-// await new Promise((resolve) => setTimeout(resolve, 10000));
 
 // View stats for the index
 const stats = await index.describeIndexStats();
@@ -116,7 +106,7 @@ async function chatLoop() {
     }
 
     try {
-      // 1️⃣ Search Pinecone
+      // Search Pinecone
       const result = await index.searchRecords({
         query: {
           topK: 5,
@@ -128,7 +118,7 @@ async function chatLoop() {
         .map(h => h.fields.chunk_text)
         .join("\n");
 
-      // 2️⃣ Combine memory + retrieved knowledge
+      // Combine memory + retrieved knowledge
       const fullContext = `
         Previous conversation:
         ${chatHistory}
@@ -154,7 +144,7 @@ async function chatLoop() {
 
       const answer = response.message.content;
 
-      console.log("\n🤖:", answer);
+      console.log("\n:", answer);
 
       // 3️⃣ Store in memory
       chatHistory += `\nUser: ${query}\nAI: ${answer}\n`;
