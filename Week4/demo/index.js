@@ -3,6 +3,9 @@ import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
 import { TavilySearch } from "@langchain/tavily";
 import { WikipediaQueryRun } from "@langchain/community/tools/wikipedia_query_run";
 import { Pinecone } from "@pinecone-database/pinecone";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { ChatBedrockConverse } from "@langchain/aws";
 
 // import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { createAgent, tool } from "langchain";
@@ -95,8 +98,7 @@ const rag_tool= tool(
 
 )
 
-
-
+//Add data to Vector db
 const add_data_to_rag= async() =>{
     function dynamicChunk(text, maxChars, overlap) {
       text = text.replace(/\s+/g, " ").trim();
@@ -171,20 +173,162 @@ const add_data_to_rag= async() =>{
 await add_data_to_rag();
 
 
+
+//MCP client setup
+class MCPGoogleDocsClient {
+  constructor() {
+    this.client = null;
+    this.transport = null;
+    this.tools = [];
+  }
+
+  async initialize() {
+    console.log("Initializing MCP Google Docs client...");
+    
+    try {
+      // Create transport to Google Docs MCP server
+      this.transport = new StdioClientTransport({
+        command: "node",
+        args: ["/Users/subramaniyans/Desktop/Ai_training/Mcp/mcp-googledocs-server/dist/server.js"],
+         env: {
+            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        }
+        // Note: You might need to use @modelcontextprotocol/server-google-docs if available
+        // Or use Google Drive server which can access Docs
+      });
+
+      // Create MCP client
+      this.client = new Client(
+        {
+          name: "presidio-insurance-agent",
+          version: "1.0.0",
+        },
+        {
+          capabilities: {},
+        }
+      );
+
+      // Connect to the server
+      await this.client.connect(this.transport);
+      
+      // Get available tools
+      const toolsResponse = await this.client.listTools();
+      this.tools = toolsResponse.tools;
+      
+      console.log("MCP Google Docs client connected!");
+      console.log(`Available MCP tools: ${this.tools.map(t => t.name).join(", ")}`);
+      console.log();
+      
+    } catch (error) {
+      console.error("Failed to initialize MCP client:", error.message);
+      this.client = null;
+    }
+  }
+
+  async callTool(toolName, args) {
+    if (!this.client) {
+      throw new Error("MCP client not initialized");
+    }
+
+    const response = await this.client.callTool({
+      name: toolName,
+      arguments: args,
+    });
+
+    // Extract text content from response
+    return response.content
+      .filter(item => item.type === "text")
+      .map(item => item.text)
+      .join("\n");
+  }
+
+  async close() {
+    if (this.client) {
+      await this.client.close();
+    }
+  }
+
+  getTools() {
+    return this.tools;
+  }
+}
+
+
+//create mcp tool for gdocs
+function createMCPGoogleDocsTool(mcpClient) {
+  return tool(
+    async ({ query }) => {
+      console.log(`🔍 MCP Google Docs Search: "${query}"`);
+      
+      try {
+        // Try to use the search tool from MCP server
+        const searchTool = mcpClient.getTools().find(t => 
+          t.name.includes("search") || t.name.includes("query")
+        );
+        
+        if (!searchTool) {
+          return "Google Docs MCP tool not available. Please check MCP server connection.";
+        }
+
+        const result = await mcpClient.callTool(searchTool.name, { query });
+        console.log(`Found results from Google Docs`);
+        
+        return `Google Docs Search Results:\n\n${result}`;
+        
+      } catch (error) {
+        console.error(` MCP Error: ${error.message}`);
+        return `Error searching Google Docs: ${error.message}`;
+      }
+    },
+    {
+      name: "google_docs_search",
+      description: "Search Google Docs for insurance-related documents and information for Suna Pana Tech. Use this to find insurance policies, claims documentation, underwriting guidelines, and customer case files stored in Google Docs.",
+      schema: z.object({
+        query: z.string().describe("Search query for Google Docs (e.g., 'insurance claim policy', 'underwriting guidelines')"),
+      }),
+    }
+  );
+}
+
+const mcpClient = new MCPGoogleDocsClient();
+await mcpClient.initialize();
+
+
+const tools=[getWeather,getAqi, wikiTool,webSearchTool, rag_tool]
+
+// Add MCP tool if client initialized successfully
+if (mcpClient.client) {
+    const googleDocsTool = createMCPGoogleDocsTool(mcpClient);
+    tools.push(googleDocsTool);
+    console.log("Added MCP Google Docs tool to agent tools.");
+}
+
+
+
 //model creation and agent creation
-const model = new ChatGoogleGenerativeAI({
-  model: "gemini-2.5-flash-lite",
-  apiKey: process.env.GEMINI_API_KEY,
+// const model = new ChatGoogleGenerativeAI({
+//   model: "gemini-2.5-flash-tts",
+//   apiKey: process.env.GEMINI_API_KEY,
+// });
+
+const model= new ChatBedrockConverse({
+    modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    region: "us-east-1",
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
 });
 
 const agent = createAgent({
   model: model,
-  tools: [getWeather,getAqi, wikiTool,webSearchTool, rag_tool],
+  tools: tools,
 });
 
 
 const response = await agent.invoke({
-  messages: [{ role: "user", content: "what is the leave policy in suna pana company?" }]
+  messages: [{ role: "user", content: "what is the leave policy in suna pana tech?" }],
 });
 console.log("Full Response:", response);
 const finalMessage = response.messages[response.messages.length - 1];
