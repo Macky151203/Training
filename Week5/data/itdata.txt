@@ -1,0 +1,22 @@
+VPN Setup:
+1. Download the VPN client from the IT portal
+2. Use your employee credentials to login
+3. Connect to "CompanyVPN" network
+4. Contact IT helpdesk if you face issues
+
+Approved Software:
+- Microsoft Office 365
+- Slack for communication
+- Zoom for meetings
+- VS Code for development
+- Chrome/Firefox browsers
+
+Laptop Request Process:
+1. Submit request through IT portal
+2. Get manager approval
+3. Wait 5-7 business days for processing
+4. Pick up from IT department (Room 302)
+
+Password Reset:
+- Use self-service portal: https://reset.company.com
+- Or call IT helpdesk: ext 1234

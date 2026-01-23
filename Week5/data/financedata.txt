@@ -1,0 +1,25 @@
+Finance Department Internal Documentation
+
+Reimbursement Process:
+1. Log into finance portal
+2. Submit expense report with receipts
+3. Manager approval required
+4. Reimbursement processed within 2 weeks
+5. Direct deposit to your account
+
+Budget Reports Location:
+- Monthly reports: Finance Portal > Reports > Monthly
+- Quarterly summaries: SharePoint > Finance > Q Reports
+- Annual budgets: Shared Drive > Finance > Annual
+
+Payroll Schedule:
+- Processed on the 25th of every month
+- If 25th is weekend/holiday, processed on previous business day
+- Direct deposit by end of business day
+- Pay stubs available on HR portal
+
+Expense Categories:
+- Travel: Flights, hotels, transportation
+- Meals: Client dinners, team lunches
+- Office Supplies: Stationery, equipment
+- Professional Development: Courses, conferences
