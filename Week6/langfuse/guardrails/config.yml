@@ -1,0 +1,5 @@
+models:
+  - type: main
+    engine: bedrock
+    model: anthropic.claude-3-5-sonnet-20240620-v1:0
+

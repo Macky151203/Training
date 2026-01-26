@@ -8,7 +8,7 @@ import * as fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
 
-// ===== MODELS =====
+
 const model = new ChatBedrockConverse({
   modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
   region: "us-east-1",
@@ -105,7 +105,7 @@ const AgentState = {
   },
 };
 
-//SUPERVISOR AGENT
+//supervisor agent
 async function supervisorAgent(state) {
   console.log("\n🎯 Supervisor Agent: Analyzing query...");
   
@@ -143,7 +143,7 @@ Respond with ONLY one word: IT, Finance, or DONE`;
   };
 }
 
-// IT AGENT WITH TOOL CALLING
+// it agent with tool calling
 async function itAgent(state) {
   console.log("\nIT Agent: Processing query with tools...");
   
@@ -222,7 +222,7 @@ User Question: ${userQuery}`;
   };
 }
 
-//FINANCE AGENT WITH TOOL CALLING
+//finance agent with tool calling
 async function financeAgent(state) {
   console.log("Finance Agent: Processing query with tools...");
   
@@ -301,7 +301,7 @@ User Question: ${userQuery}`;
   };
 }
 
-//BUILD GRAPH
+//graph workflow
 function createWorkflow() {
   const workflow = new StateGraph({
     channels: AgentState,
@@ -333,7 +333,6 @@ function createWorkflow() {
   return workflow.compile();
 }
 
-//MAIN
 async function main() {
   console.log("\nMulti-Agent System with Tool Calling");
   console.log("=" .repeat(70));
@@ -379,9 +378,6 @@ async function main() {
       console.error(`\nError: ${error.message}`);
       console.error(error.stack);
     }
-
-    // Delay between queries
-    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
   console.log("\n" + "=".repeat(70));
