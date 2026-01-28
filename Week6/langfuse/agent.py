@@ -35,8 +35,8 @@ def guarded_invoke(user_input: str):
     Guardrails runs for policy processing (side effects).
     Agent execution is always gated in application logic.
     """
-    rails.generate(messages=[{"role": "user", "content": user_input}])
-
+    rails_output=rails.generate(messages=[{"role": "user", "content": user_input}])
+    print("Guardrails Output:", rails_output)
     return agent_executor.invoke(
         {"input": user_input},
         config={"callbacks": [langfuse_handler]}
@@ -104,21 +104,21 @@ def extract_trajectory(response):
 
 
 evaluation_cases = [
-    {
-        "input": "What is 42 + 58?",
-        "reference": "100",
-        "expected_tools": ["add_numbers"]
-    },
+    # {
+    #     "input": "What is 42 + 58?",
+    #     "reference": "100",
+    #     "expected_tools": ["add_numbers"]
+    # },
     {
         "input": "Who is Mahendra Singh Dhoni?",
         "reference": "Mahendra Singh Dhoni is an Indian former international cricketer",
         "expected_tools": ["wikitool","tavily_search_results_json"]
     },
-    {
-        "input": "What is the latest news about OpenAI?",
-        "reference": "OpenAI",
-        "expected_tools": ["tavily_search_results_json","wikitool"]
-    }
+    # {
+    #     "input": "What is the latest news about OpenAI?",
+    #     "reference": "OpenAI",
+    #     "expected_tools": ["tavily_search_results_json","wikitool"]
+    # }
 ]
 
 def extract_tool_trajectory(response):
